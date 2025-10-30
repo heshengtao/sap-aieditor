@@ -143,6 +143,19 @@
       animation: fadeIn 0.5s ease-out;
     }
     
+    .status-btn{
+      margin-left: 12px;
+      padding: 4px 10px;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.5);
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .status-btn:hover{background: rgba(255,255,255,.25);}
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -163,6 +176,8 @@
         AiEditor - 智能编辑器
       </div>
       <div class="editor-status">
+        <button id="btnPull" class="status-btn" title="把最后一条助手消息拉到编辑器">从助手消息开始编辑</button>
+        <button id="btnPush" class="status-btn" title="把编辑器内容发给主页面输入框">发送给输入框</button>
         <span class="status-indicator"></span>
         <span>就绪</span>
       </div>
@@ -240,6 +255,44 @@
         }
       }
     });
+    /* ===== 复用你已有的 ws 逻辑，只追加功能 ===== */
+    const $ = s => document.querySelector(s);
+    let ws;                       // 直接复用你已有的 ws 变量
+
+    function initSharedWS(){
+      // 完全照抄你给的 initWS，只不过把 onmessage 多包一层
+      const proto = location.protocol==='https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}/ws`);
+      ws.onopen  = () => ws.send(JSON.stringify({type:'get_messages'}));
+      ws.onclose = () => setTimeout(initSharedWS,5000);
+      ws.onmessage = e => {
+        try{
+          const d = JSON.parse(e.data);
+          if(d.type==='messages_update'||d.type==='broadcast_messages'){
+            window._messages = d.data.messages;   // 缓存最新数组
+          }
+        }catch{}
+      };
+    }
+    initSharedWS();
+
+    /* 两个按钮事件 */
+    $('#btnPull').onclick = () => {
+      if(!window._messages) return;
+      // 找到最后一条助手消息
+      const bot = [...window._messages].reverse().find(m => m.role==='assistant');
+      const txt = bot ? (bot.pure_content || bot.content || '') : '（暂无助手消息）';
+      editor.setContent(`<p>${txt.replace(/\n/g,'</p><p>')}</p>`);
+    };
+
+    $('#btnPush').onclick = () => {
+      if(!editor) return;
+      const t = editor.getText().trim();
+      if(!t) return;
+      // 直接走你已有的两条命令
+      ws.send(JSON.stringify({type:'set_user_input', data:{text:t}}));
+    };
+    
   </script>
 </body>
 </html>
