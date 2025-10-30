@@ -1,0 +1,14 @@
+{
+  "name": "sap-aieditor",
+  "version": "1.0.0",
+  "description": "This is a AI Editor",
+  "author": "heshengtao",
+  "systemPrompt": "",
+  "repository": "https://github.com/heshengtao/sap-aieditor",
+  "backupRepository": "https://gitee.com/heshengtao/sap-aieditor",
+  "category": "Utility"
+}
+
+
+
+
