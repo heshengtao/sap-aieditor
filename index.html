@@ -5,6 +5,7 @@
   <title>AiEditor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aieditor@1.4.1/dist/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -174,11 +175,12 @@
           <line x1="16" y1="17" x2="8" y2="17"></line>
           <polyline points="10 9 9 9 8 9"></polyline>
         </svg>
-        AiEditor - 智能编辑器
+        AiEditor
       </div>
       <div class="editor-status">
-        <button id="btnPull" class="status-btn" title="把最后一条助手消息拉到编辑器">从助手消息开始编辑</button>
-        <button id="btnPush" class="status-btn" title="把编辑器内容发给主页面输入框">发送给输入框</button>
+        <button id="btnDownloadDocx" class="status-btn" title="保存为 docx 文件">下载</button>
+        <button id="btnPull" class="status-btn" title="把最后一条助手消息拉到编辑器">从助手消息编辑</button>
+        <button id="btnPush" class="status-btn" title="把编辑器内容发给主页面输入框">发送到输入</button>
         <span class="status-indicator"></span>
         <span>就绪</span>
       </div>
@@ -203,7 +205,7 @@
       editor = new AiEditor({
         element: '#aiEditor',
         placeholder: '点击输入内容，支持 AI 辅助写作...',
-        content: '<p><strong>欢迎使用 AiEditor！</strong></p><p>这是一个基于 AI 的开源富文本编辑器，支持智能写作辅助、实时协作等功能。</p><p>开始输入您的内容，体验智能化的编辑体验吧！</p>',
+        content: '<p><strong>欢迎使用 AiEditor！</strong></p><p>本扩展基于AiEditor开发，这是一个基于 AI 的开源富文本编辑器，支持智能写作辅助、实时协作等功能。</p><p>开始输入您的内容，体验智能化的编辑体验吧！</p>',
         ai: {
           models: {
             openai: {
@@ -295,6 +297,49 @@
       const t = editor.getText().trim();
       if (!t) return;
       ws.send(JSON.stringify({ type: 'set_user_input', data: { text: t } }));
+    };
+    /* ===== 导出 docx ===== */
+    document.getElementById('btnDownloadDocx').onclick = () => {
+      if (!editor) return;
+      // 拿到带格式的 HTML
+      const html = editor.getHtml();          // AiEditor 原生 API
+      // 拼一个最简完整的 HTML 骨架，让 html-docx-js 更好识别样式
+      const fullHtml = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>AiEditor 导出</title>
+            <style>
+              body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,
+                              "Noto Sans",sans-serif;font-size:14px;line-height:1.6;color:#333;}
+              h1,h2,h3,h4,h5,h6{margin:12px 0 6px;font-weight:600;}
+              p{margin:4px 0;}
+              ul,ol{margin:4px 0;padding-left:24px;}
+              blockquote{margin:6px 0;padding-left:12px;border-left:4px solid #ccc;color:#555;}
+              code{background:#f4f4f4;padding:2px 4px;border-radius:3px;font-size:13px;}
+              pre{background:#f6f8fa;padding:8px;border-radius:4px;overflow-x:auto;}
+            </style>
+          </head>
+          <body>${html}</body>
+        </html>`;
+
+      // 转二进制
+      const converted = htmlDocx.asBlob(fullHtml);
+
+      // 下载
+      const fileName = `AiEditor_${new Date().toISOString().slice(0,10)}.docx`;
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        // IE/Edge
+        window.navigator.msSaveOrOpenBlob(converted, fileName);
+      } else {
+        // 现代浏览器
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(converted);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     };
   </script>
 
