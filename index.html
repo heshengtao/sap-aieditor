@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>AiEditor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aieditor@1.4.1/dist/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -187,18 +188,18 @@
 
   <script type="module">
     import { AiEditor } from 'https://cdn.jsdelivr.net/npm/aieditor@1.4.1/dist/index.js';
-    
+
     const origin = window.location.origin;
     let editor = null;
-    
+
     // 添加加载状态
     const statusElement = document.querySelector('.editor-status span:last-child');
     const statusIndicator = document.querySelector('.status-indicator');
-    
+
     try {
       statusElement.textContent = '初始化中...';
       statusIndicator.style.background = '#fbbf24';
-      
+
       editor = new AiEditor({
         element: '#aiEditor',
         placeholder: '点击输入内容，支持 AI 辅助写作...',
@@ -229,13 +230,13 @@
           }, 1000);
         }
       });
-      
+
     } catch (error) {
       console.error('编辑器初始化失败:', error);
       statusElement.textContent = '初始化失败';
       statusIndicator.style.background = '#ef4444';
     }
-    
+
     // 添加键盘快捷键提示
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey || e.metaKey) {
@@ -255,44 +256,47 @@
         }
       }
     });
+
     /* ===== 复用你已有的 ws 逻辑，只追加功能 ===== */
     const $ = s => document.querySelector(s);
-    let ws;                       // 直接复用你已有的 ws 变量
+    let ws;
 
-    function initSharedWS(){
-      // 完全照抄你给的 initWS，只不过把 onmessage 多包一层
-      const proto = location.protocol==='https:' ? 'wss:' : 'ws:';
+    function initSharedWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${proto}//${location.host}/ws`);
-      ws.onopen  = () => ws.send(JSON.stringify({type:'get_messages'}));
-      ws.onclose = () => setTimeout(initSharedWS,5000);
-      ws.onmessage = e => {
-        try{
+      ws.onopen = () => ws.send(JSON.stringify({ type: 'get_messages' }));
+      ws.onclose = () => setTimeout(initSharedWS, 5000);
+      ws.onmessage = (e) => {
+        try {
           const d = JSON.parse(e.data);
-          if(d.type==='messages_update'||d.type==='broadcast_messages'){
-            window._messages = d.data.messages;   // 缓存最新数组
+          if (d.type === 'messages_update' || d.type === 'broadcast_messages') {
+            window._messages = d.data.messages;
           }
-        }catch{}
+        } catch {}
       };
     }
     initSharedWS();
 
     /* 两个按钮事件 */
     $('#btnPull').onclick = () => {
-      if(!window._messages) return;
-      // 找到最后一条助手消息
-      const bot = [...window._messages].reverse().find(m => m.role==='assistant');
-      const txt = bot ? (bot.pure_content || bot.content || '') : '（暂无助手消息）';
-      editor.setContent(`<p>${txt.replace(/\n/g,'</p><p>')}</p>`);
+      if (!window._messages) return;
+      const bot = [...window._messages].reverse().find(m => m.role === 'assistant');
+      if (!bot) {
+        editor.setContent('<p>（暂无助手消息）</p>');
+        return;
+      }
+      const txt = bot.pure_content || bot.content || '';
+      const html = marked.parse(txt);
+      editor.setContent(html);
     };
 
     $('#btnPush').onclick = () => {
-      if(!editor) return;
+      if (!editor) return;
       const t = editor.getText().trim();
-      if(!t) return;
-      // 直接走你已有的两条命令
-      ws.send(JSON.stringify({type:'set_user_input', data:{text:t}}));
+      if (!t) return;
+      ws.send(JSON.stringify({ type: 'set_user_input', data: { text: t } }));
     };
-    
   </script>
+
 </body>
 </html>
