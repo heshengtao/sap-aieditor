@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>AiEditor</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aieditor@1.4.1/dist/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+  <link rel="stylesheet" href="aieditor-style.css" />
+  <script src="marked.min.js"></script>
+  <script src="html-docx.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -189,7 +189,7 @@
   </div>
 
   <script type="module">
-    import { AiEditor } from 'https://cdn.jsdelivr.net/npm/aieditor@1.4.1/dist/index.js';
+    import { AiEditor } from 'aieditor-index.js';
 
     const origin = window.location.origin;
     let editor = null;
